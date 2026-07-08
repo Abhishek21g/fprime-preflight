@@ -1,0 +1,27 @@
+name: ref-cdh-snippet
+description: Minimal CDH file-downlink path (healthy buffer contracts)
+constants:
+  file_internal_buffer: 512
+components:
+  - name: fileDownlink
+    kind: Svc.FileDownlink
+    buffers:
+      outbound: 512
+    ports:
+      bufferSendOut: output
+      bufferReturn: input
+      cmdIn: input
+  - name: comQueue
+    kind: Svc.ComQueue
+    ports:
+      comIn: input
+      comOut: output
+connections:
+  - from: fileDownlink.bufferSendOut
+    to: comQueue.comIn
+    buffer_size: 9
+    packet_kind: file_cancel
+  - from: fileDownlink.bufferSendOut
+    to: comQueue.comIn
+    buffer_size: 512
+    packet_kind: file_data

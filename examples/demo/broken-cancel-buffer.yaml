@@ -1,0 +1,20 @@
+name: broken-cancel-buffer
+description: Reproduces FileDownlink cancel buffer class from nasa/fprime#5347
+constants:
+  file_internal_buffer: 512
+components:
+  - name: fileDownlink
+    kind: Svc.FileDownlink
+    buffers:
+      outbound: 512
+    ports:
+      bufferSendOut: output
+  - name: downstream
+    kind: App.FilePacketConsumer
+    ports:
+      bufferIn: input
+connections:
+  - from: fileDownlink.bufferSendOut
+    to: downstream.bufferIn
+    buffer_size: 512
+    packet_kind: file_cancel

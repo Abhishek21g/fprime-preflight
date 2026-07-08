@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-08T06:43:55.150078+00:00",
+  "topology_name": "broken-cancel-buffer",
+  "topology_path": "examples/demo/broken-cancel-buffer.yaml",
+  "ship": false,
+  "findings": [
+    {
+      "code": "cancel_oversized_buffer",
+      "severity": "critical",
+      "message": "cancel packet sent at full internal buffer size \u2014 downstream Fw::FilePacket::fromBuffer() may hit FW_DESERIALIZE_SIZE_MISMATCH",
+      "component": null,
+      "connection": "fileDownlink.bufferSendOut -> downstream.bufferIn"
+    }
+  ],
+  "summary": {
+    "critical": 1
+  },
+  "notes": [
+    "Reproduces FileDownlink cancel buffer class from nasa/fprime#5347"
+  ]
+}

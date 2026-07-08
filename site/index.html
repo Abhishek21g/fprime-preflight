@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>F' Deploy Preflight — topology validation before HWIT</title>
+  <meta name="description" content="Validate F' deployment topologies, buffer contracts, and FileDownlink cancel paths locally — receipt JSON before hardware-in-the-loop." />
+  <meta property="og:title" content="F' Deploy Preflight" />
+  <meta property="og:description" content="Plan, validate, and receipt-check F' topologies before the bench." />
+  <meta property="og:url" content="https://enaguthi.com/fprime-preflight/site/" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <nav class="top-nav">
+      <a class="back" href="https://enaguthi.com/">← enaguthi.com</a>
+      <div class="nav-links">
+        <a href="#problem">Problem</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#cli">CLI</a>
+        <a href="https://github.com/Abhishek21g/fprime-preflight">GitHub</a>
+      </div>
+    </nav>
+
+    <section class="hero" id="top">
+      <div>
+        <p class="eyebrow">NASA F' · Flight Software</p>
+        <h1>Preflight your F' deployment before hardware-in-the-loop.</h1>
+        <p class="lede">
+          F' ships powerful component topologies, but buffer contracts and cancel-packet paths
+          often fail silently on the bench. F' Deploy Preflight validates topology YAML locally —
+          <strong>receipt JSON + this dashboard</strong> — before you burn an HWIT slot.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#dashboard">Try live dashboard</a>
+          <a class="btn" href="https://github.com/Abhishek21g/fprime-preflight">View on GitHub</a>
+        </div>
+        <dl class="proof-grid">
+          <div><dt>21</dt><dd>passing tests</dd></div>
+          <div><dt>4</dt><dd>validation rules</dd></div>
+          <div><dt>3</dt><dd>demo topologies</dd></div>
+        </dl>
+      </div>
+      <aside class="hero-panel" aria-label="CLI preview">
+        <div class="panel-top">
+          <span><span class="status-dot"></span>fprime-preflight</span>
+          <span>mock mode</span>
+        </div>
+        <div class="terminal">
+          <span class="prompt">$</span>pip install fprime-preflight<br />
+          <span class="prompt">$</span>fprime-preflight plan ref-cdh-snippet.yaml<br />
+          <span class="prompt">$</span>fprime-preflight run broken-cancel-buffer.yaml<br />
+          <span class="prompt">$</span>fprime-preflight doctor out/receipts/latest.json
+        </div>
+        <div class="card" style="margin:0;border:none;border-top:1px solid var(--border);border-radius:0">
+          <h3>Sample result</h3>
+          <div class="ship-badge no" style="font-size:1.1rem">NO SHIP</div>
+          <p class="ship-label">cancel_oversized_buffer · #5347 class</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" id="problem">
+      <h2 class="section-title">The problem NASA is solving</h2>
+      <div class="solution-grid">
+        <article class="solution-card">
+          <span class="solution-label">Mission</span>
+          <p>
+            F' is NASA's component-driven flight-software framework — used on missions from
+            smallsats to flagship projects. Engineers wire <strong>topologies</strong> of
+            components with typed ports and serialized buffer contracts.
+          </p>
+        </article>
+        <article class="solution-card">
+          <span class="solution-label">Public pain</span>
+          <p>
+            Issues like <a href="https://github.com/nasa/fprime/issues/5347">fprime#5347</a> show
+            cancel packets sent at full internal buffer size causing
+            <code>FW_DESERIALIZE_SIZE_MISMATCH</code> downstream — discovered on the bench, not in CI.
+          </p>
+        </article>
+        <article class="solution-card">
+          <span class="solution-label">This product</span>
+          <p>
+            <code>plan → run → doctor → report</code> on topology YAML. Catches buffer contracts,
+            dangling ports, and cancel-path anti-patterns. <strong>Independent</strong> of any single PR.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="dashboard">
+      <h2 class="section-title">Live dashboard</h2>
+      <div class="dashboard-wrap">
+        <div class="toolbar">
+          <label class="btn btn-primary">
+            Load receipt JSON
+            <input type="file" id="fileInput" accept=".json,application/json" />
+          </label>
+          <button class="btn" id="loadSample" type="button">Load sample</button>
+          <button class="btn" id="copyReceipt" type="button">Copy receipt</button>
+          <span class="topology-label" id="topologyLabel"></span>
+        </div>
+
+        <div class="grid grid-hero">
+          <div class="card">
+            <h3>Ship verdict</h3>
+            <div class="ship-badge" id="shipBadge">—</div>
+            <div class="ship-label" id="shipLabel">load a receipt to begin</div>
+            <div class="counts">
+              <div class="count critical">
+                <div class="val" id="critCount">0</div>
+                <div class="lbl">Critical</div>
+              </div>
+              <div class="count warning">
+                <div class="val" id="warnCount">0</div>
+                <div class="lbl">Warning</div>
+              </div>
+              <div class="count info">
+                <div class="val" id="infoCount">0</div>
+                <div class="lbl">Info</div>
+              </div>
+            </div>
+            <div class="fix-first" id="fixFirst" hidden></div>
+          </div>
+          <div class="card">
+            <h3>Checks run</h3>
+            <div class="checks-grid">
+              <div class="check-item"><span class="icon">✓</span> Buffer contracts</div>
+              <div class="check-item"><span class="icon">✓</span> Cancel path (#5347)</div>
+              <div class="check-item"><span class="icon">✓</span> Dangling ports</div>
+              <div class="check-item"><span class="icon">✓</span> Unknown components</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Topology</h3>
+            <p style="font-size:0.85rem;color:#b8c2d4;margin-bottom:0.5rem" id="topoPath">—</p>
+            <p style="font-size:0.78rem;color:var(--muted)" id="generatedAt">—</p>
+            <ul id="notesList" style="margin-top:0.75rem;font-size:0.82rem;color:var(--muted);padding-left:1.1rem"></ul>
+          </div>
+        </div>
+
+        <div class="grid grid-mid">
+          <div class="card">
+            <h3>Findings</h3>
+            <ul class="findings-list" id="findingsList">
+              <li style="color:var(--muted)">No receipt loaded.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Severity breakdown</h3>
+            <canvas id="severityChart" height="180"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="cli">
+      <h2 class="section-title">CLI — 60-second demo</h2>
+      <div class="cli-block">
+        <span style="color:var(--accent)"># install</span><br />
+        pip install fprime-preflight<br /><br />
+        <span style="color:var(--accent)"># healthy topology</span><br />
+        fprime-preflight run examples/demo/ref-cdh-snippet.yaml<br /><br />
+        <span style="color:var(--accent)"># broken cancel buffer (ships NO, exit 2)</span><br />
+        fprime-preflight run examples/demo/broken-cancel-buffer.yaml -o out/receipts/latest.json<br />
+        fprime-preflight doctor out/receipts/latest.json<br />
+        fprime-preflight report out/receipts/latest.json -o out/report.md
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        Built by <a href="https://enaguthi.com">Abhishek Enaguthi</a> ·
+        Independent product artifact · Not affiliated with NASA/JPL
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

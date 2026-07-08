@@ -1,0 +1,21 @@
+name: dangling-ports
+description: Topology with unconnected command input
+constants:
+  file_internal_buffer: 512
+components:
+  - name: fileDownlink
+    kind: Svc.FileDownlink
+    buffers:
+      outbound: 512
+    ports:
+      bufferSendOut: output
+      cmdIn: input
+  - name: comQueue
+    kind: Svc.ComQueue
+    ports:
+      comIn: input
+connections:
+  - from: fileDownlink.bufferSendOut
+    to: comQueue.comIn
+    buffer_size: 9
+    packet_kind: file_cancel
